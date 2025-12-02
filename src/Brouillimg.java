@@ -1,10 +1,10 @@
-import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.IntStream;
+import javax.imageio.ImageIO;
+// import java.util.concurrent.atomic.AtomicInteger;
+// import java.util.concurrent.atomic.AtomicLong;
+// import java.util.stream.IntStream;
 
 public class Brouillimg {
 
@@ -111,9 +111,23 @@ public class Brouillimg {
 
         int[] scrambleTable = new int[size];
 
-        for (int i = 0; i < size; i++) scrambleTable[i] = i;
+        int offset = getOffest(key);
+        int step = getStep();
+
+        for (int i = 0; i < size; i++) {
+            scrambleTable[i] = i;
+            ((offset + (2 * step + 1) * i) % size)
+        }
 
         return scrambleTable;
+
+    }
+
+    public static int getOffest(int key) {
+
+    }
+
+    public static int getStep() {
 
     }
 
