@@ -112,7 +112,7 @@ public class Brouillimg {
         int[] scrambleTable = new int[size];
 
         int offset = getOffest(key);
-        int step = getStep();
+        int step = getStep(key);
 
         for (int i = 0; i < size; i++) {
             scrambleTable[i] = i;
@@ -127,8 +127,19 @@ public class Brouillimg {
         return key >> 7;
     }
 
-    public static int getStep() {
-
+    /**
+     * <h2>Retourne les step de la clé</h2>
+     *
+     * @param key clé de génération
+     * @return Step de la clé de génération
+     */
+    public static int getStep(int key) {
+        int step = key << 8;
+        // On decale les bits vers la gauche 8 fois
+        step &= 0x7FFF;
+        // Ensuite on applique le masque 0x7FFF pour effacer les 8 bit du offset hors des 15 bits
+        return (step >> 8);
+        // Enfin retourne on le décallage binaire vers la droite de 8 bits
     }
 
 
