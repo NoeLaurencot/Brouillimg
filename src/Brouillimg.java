@@ -8,7 +8,6 @@ import javax.imageio.ImageIO;
 
 public class Brouillimg {
 
-
     public static void main(String[] args) throws IOException {
         if (args.length < 2) {
             System.err.println("Usage: java Brouillimg <image_claire> <clé> [image_sortie]");
@@ -22,7 +21,6 @@ public class Brouillimg {
 
         int key = Integer.parseInt(args[1]) & 0x7FFF;
 
-
         BufferedImage inputImage = ImageIO.read(new File(inPath));
 
         if (inputImage == null) {
@@ -31,21 +29,17 @@ public class Brouillimg {
 
         }
 
-
         final int height = inputImage.getHeight();
 
         final int width = inputImage.getWidth();
 
         System.out.println("Dimensions de l'image : " + width + "x" + height);
 
-
         // Pré‑calcul des lignes en niveaux de gris pour accélérer le calcul du critère
 
         int[][] inputImageGL = rgb2gl(inputImage);
 
-
         int[] perm = generatePermutation(height, key);
-
 
         BufferedImage scrambledImage = scrambleLines(inputImage, perm);
 
@@ -54,7 +48,6 @@ public class Brouillimg {
         System.out.println("Image écrite: " + outPath);
 
     }
-
 
     /**
      * Convertit une image RGB en niveaux de gris (GL).
@@ -70,7 +63,6 @@ public class Brouillimg {
         final int width = inputRGB.getWidth();
 
         int[][] outGL = new int[height][width];
-
 
         for (int y = 0; y < height; y++) {
 
@@ -98,50 +90,61 @@ public class Brouillimg {
 
     }
 
-
     /**
      * Génère une permutation des entiers 0..size-1 en fonction d'une clé.
      *
      * @param size taille de la permutation
      * @param key  clé de génération (15 bits)
-     * @return tableau de taille 'size' contenant une permutation des entiers 0..size-1
+     * @return tableau de taille 'size' contenant une permutation des entiers
+     *         0..size-1
      */
 
     public static int[] generatePermutation(int size, int key) {
 
-        int[] scrambleTable = new int[size];
+        int[] arrTmp = new int[size];
 
         int offset = getOffest(key);
         int step = getStep(key);
 
         for (int i = 0; i < size; i++) {
-            scrambleTable[i] = i;
-            ((offset + (2 * step + 1) * i) % size)
+            arrTmp[i] = i;
+        }
+
+        int scrambleTable[] = new int[size];
+
+        for (int i = 0; i < size; i++) {
+            int linePos = ((offset + (2 * step + 1) * i) % size);
+            scrambleTable[linePos] = arrTmp[i];
         }
 
         return scrambleTable;
-
     }
 
+    /**
+     * <h3>Retourne l'offset de la clé</h3>
+     * 
+     * @param key clé de génération (15 bits)
+     * @return l'offset de la clé
+     */
     public static int getOffest(int key) {
         return key >> 7;
     }
 
     /**
-     * <h2>Retourne les step de la clé</h2>
+     * <h3>Retourne les step de la clé</h3>
      *
-     * @param key clé de génération
+     * @param key clé de génération (15 bits)
      * @return Step de la clé de génération
      */
     public static int getStep(int key) {
         int step = key << 8;
         // On decale les bits vers la gauche 8 fois
         step &= 0x7FFF;
-        // Ensuite on applique le masque 0x7FFF pour effacer les 8 bit du offset hors des 15 bits
+        // Ensuite on applique le masque 0x7FFF pour effacer les 8 bit du offset hors
+        // des 15 bits
         return (step >> 8);
         // Enfin retourne on le décallage binaire vers la droite de 8 bits
     }
-
 
     /**
      * Mélange les lignes d'une image selon une permutation donnée.
@@ -157,16 +160,14 @@ public class Brouillimg {
 
         int height = inputImg.getHeight();
 
-        if (perm.length != height) throw new IllegalArgumentException("Taille d'image <> taille permutation");
-
+        if (perm.length != height)
+            throw new IllegalArgumentException("Taille d'image <> taille permutation");
 
         BufferedImage out = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-
 
         return out;
 
     }
-
 
     /**
      * Renvoie la position de la ligne id dans l'image brouillée.
