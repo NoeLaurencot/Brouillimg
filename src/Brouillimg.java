@@ -137,13 +137,8 @@ public class Brouillimg {
      * @return Step de la clé de génération
      */
     public static int getStep(int key) {
-        int step = key << 8;
-        // On decale les bits vers la gauche 8 fois
-        step &= 0x7FFF;
-        // Ensuite on applique le masque 0x7FFF pour effacer les 8 bit du offset hors
-        // des 15 bits
-        return (step >> 8);
-        // Enfin retourne on le décallage binaire vers la droite de 8 bits
+        // On applique le masque 0x7F pour garder que les 7 bits du step
+        return key & 0x7F;
     }
 
     /**
@@ -162,6 +157,7 @@ public class Brouillimg {
 
         if (perm.length != height)
             throw new IllegalArgumentException("Taille d'image <> taille permutation");
+
 
         BufferedImage out = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
 
