@@ -110,7 +110,7 @@ public class Brouillimg {
             arrTmp[i] = i;
         }
 
-        int scrambleTable[] = new int[size];
+        int[] scrambleTable = new int[size];
 
         for (int i = 0; i < size; i++) {
             int linePos = ((offset + (2 * step + 1) * i) % size);
@@ -127,7 +127,7 @@ public class Brouillimg {
      * @return l'offset de la clé
      */
     public static int getOffest(int key) {
-        return key >> 7;
+        return key >> 7 & 0xFF;
     }
 
     /**
@@ -164,6 +164,12 @@ public class Brouillimg {
             throw new IllegalArgumentException("Taille d'image <> taille permutation");
 
         BufferedImage out = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+
+        int[] rgb = new int[height];
+        for (int y = 0; y < height; y++) {
+            inputImg.getRGB(0, perm[y], width, 1, rgb, 0, width);
+            out.setRGB(0, y, width, 1, rgb, 0, width);
+        }
 
         return out;
 
