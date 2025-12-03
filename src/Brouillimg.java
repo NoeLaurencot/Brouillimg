@@ -124,7 +124,7 @@ public class Brouillimg {
     }
 
     public static int getOffest(int key) {
-
+        return key >> 7;
     }
 
     public static int getStep() {
