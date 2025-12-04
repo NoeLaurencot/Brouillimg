@@ -100,23 +100,10 @@ public class Brouillimg {
      */
 
     public static int[] generatePermutation(int size, int key) {
-
-        int[] arrTmp = new int[size];
-
-        int offset = getOffest(key);
-        int step = getStep(key);
-
-        for (int i = 0; i < size; i++) {
-            arrTmp[i] = i;
-        }
-
         int[] scrambleTable = new int[size];
-
         for (int i = 0; i < size; i++) {
-            int linePos = ((offset + (2 * step + 1) * i) % size);
-            scrambleTable[linePos] = arrTmp[i];
+            scrambleTable[scrambledId(i,size,key)] = i;
         }
-
         return scrambleTable;
     }
 
@@ -174,11 +161,11 @@ public class Brouillimg {
      * Déchiffre les ligne selon une clé donnée.
      *
      * @param inputImg image d'entrée
-     * @param perm     permutation des lignes (taille = hauteur de l'image)
+     * @param key clé de génération (15 bits)
      * @return image de sortie déchiffré
      */
 
-    public static BufferedImage unScrambleLines(BufferedImage inputImg, int key) {
+    public static BufferedImage unScrambleLines(BufferedImage inputImg, int[] perm) {
         int width = inputImg.getWidth();
 
         int height = inputImg.getHeight();
@@ -187,7 +174,7 @@ public class Brouillimg {
 
         int[] rgb = new int[height];
         for (int y = 0; y < height; y++) {
-            inputImg.getRGB(0, scrambledId(y,height,key), width, 1, rgb, 0, width);
+            inputImg.getRGB(0, unScrambledId(y,perm), width, 1, rgb, 0, width);
             out.setRGB(0, y, width, 1, rgb, 0, width);
         }
 
@@ -205,15 +192,29 @@ public class Brouillimg {
      */
 
     public static int scrambledId(int id, int size, int key) {
-        int[] perm = generatePermutation(size, key);
+        int offset = getOffest(key);
+        int step = getStep(key);
+        ((offset + (2 * step + 1) * id) % size);
+
+    }
+
+
+    /**
+     * Renvoie la position de la ligne id dans l'image claire.
+     *
+     * @param id   indice de la ligne dans l'image Brouillée (0..size-1)
+     * @param perm tableau de permutation de la clé de déchiffrage
+     * @return indice de la ligne dans l'image claire (0..size-1)
+     */
+
+    public static int unScrambledId(int id, int[] perm) {
         int i = 0;
         while (i < size && perm[i] != id) {
             i++;
         }
-         if (perm[i] == id)
-             id = i;
+        if (perm[i] == id)
+            id = i;
         return id;
-
     }
 
 }
