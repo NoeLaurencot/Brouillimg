@@ -10,11 +10,11 @@ public class Brouillimg {
 
     public static void main(String[] args) throws IOException {
         if (args.length < 2) {
-            System.err.println("Usage: java Brouillimg <methode> <image_claire> <clé> [image_sortie] [image de comparaison]");
+            System.err.println("Usage: java Brouillimg <process> <image_claire> <clé> [image_sortie] [image de comparaison]");
             System.exit(1);
         }
 
-        String method = args[0];
+        String process = args[0];
         String inPath = args[1];
         String outPath = (args.length >= 3) ? args[3] : "out.png";
 
@@ -39,7 +39,7 @@ public class Brouillimg {
         int[][] inputImageGL = rgb2gl(inputImage);
         int[] perm = generatePermutation(height, key);
 
-        switch (method) {
+        switch (process) {
             case "scramble":
                 BufferedImage scrambledImage = scrambleLines(inputImage, perm);
                 ImageIO.write(scrambledImage, "png", new File(outPath));
