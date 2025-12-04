@@ -161,7 +161,7 @@ public class Brouillimg {
      * Déchiffre les ligne selon une clé donnée.
      *
      * @param inputImg image d'entrée
-     * @param key clé de génération (15 bits)
+     * @param perm tableau permutation de la clé de déchifrement
      * @return image de sortie déchiffré
      */
 
