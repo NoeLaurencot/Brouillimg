@@ -10,12 +10,13 @@ public class Brouillimg {
 
     public static void main(String[] args) throws IOException {
         if (args.length < 2) {
-            System.err.println("Usage: java Brouillimg <image_claire> <clé> [image_sortie]");
+            System.err.println("Usage: java Brouillimg <image_claire> <clé> [image_sortie] <methode>");
             System.exit(1);
         }
 
         String inPath = args[0];
         String outPath = (args.length >= 3) ? args[2] : "out.png";
+        String method = args[3];
 
         // Masque 0x7FFF pour garantir que la clé ne dépasse pas les 15 bits
 
@@ -24,9 +25,7 @@ public class Brouillimg {
         BufferedImage inputImage = ImageIO.read(new File(inPath));
 
         if (inputImage == null) {
-
             throw new IOException("Format d’image non reconnu: " + inPath);
-
         }
 
         final int height = inputImage.getHeight();
@@ -39,11 +38,19 @@ public class Brouillimg {
 
         int[][] inputImageGL = rgb2gl(inputImage);
 
-        int[] perm = generatePermutation(height, key);
-
-        BufferedImage scrambledImage = scrambleLines(inputImage, perm);
-
-        ImageIO.write(scrambledImage, "png", new File(outPath));
+        switch (method) {
+            case "scramble":
+                int[] perm = generatePermutation(height, key);
+                BufferedImage scrambledImage = scrambleLines(inputImage, perm);
+                ImageIO.write(scrambledImage, "png", new File(outPath));
+                break;
+            case "unscramble":
+                BufferedImage unscrambledImage = unScrambleLines(inputImage, key);
+                ImageIO.write(unscrambledImage, "png", new File(outPath));
+                break;
+            default:
+                throw new IOException("Méthode non renseignée");
+        }
 
         System.out.println("Image écrite: " + outPath);
 
@@ -120,6 +127,27 @@ public class Brouillimg {
         return scrambleTable;
     }
 
+    public static boolean isSameImage(BufferedImage image1, BufferedImage image2) {
+        int height1 = image1.getHeight();
+        int width1 = image1.getWidth();
+
+        int height2 = image2.getHeight();
+        int width2 = image2.getWidth();
+
+        if (height1 != height2 || width1 != width2) {
+            return false;
+        }
+
+        int i = 0;
+        
+        while (i < width1 * height1) {
+            if (image1.getRGB(i % width1, i / width1) != image2.getRGB(i % width2, i / width2)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     /**
      * <h3>Retourne l'offset de la clé</h3>
      * 
@@ -158,7 +186,6 @@ public class Brouillimg {
         if (perm.length != height)
             throw new IllegalArgumentException("Taille d'image <> taille permutation");
 
-
         BufferedImage out = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
 
         int[] rgb = new int[height];
@@ -166,10 +193,10 @@ public class Brouillimg {
             inputImg.getRGB(0, perm[y], width, 1, rgb, 0, width);
             out.setRGB(0, y, width, 1, rgb, 0, width);
         }
-
         return out;
 
     }
+
     /**
      * Déchiffre les ligne selon une clé donnée.
      *
@@ -184,15 +211,11 @@ public class Brouillimg {
 
         int height = inputImg.getHeight();
 
-        if (perm.length != height)
-            throw new IllegalArgumentException("Taille d'image <> taille permutation");
-
-
         BufferedImage out = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
 
         int[] rgb = new int[height];
         for (int y = 0; y < height; y++) {
-            inputImg.getRGB(0, scrambledId(y,height,key), width, 1, rgb, 0, width);
+            inputImg.getRGB(0, scrambledId(y, height, key), width, 1, rgb, 0, width);
             out.setRGB(0, y, width, 1, rgb, 0, width);
         }
 
@@ -215,8 +238,8 @@ public class Brouillimg {
         while (i < size && perm[i] != id) {
             i++;
         }
-         if (perm[i] == id)
-             id = i;
+        if (perm[i] == id)
+            id = i;
         return id;
 
     }
