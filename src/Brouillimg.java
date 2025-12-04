@@ -179,14 +179,9 @@ public class Brouillimg {
      */
 
     public static BufferedImage unScrambleLines(BufferedImage inputImg, int key) {
-
         int width = inputImg.getWidth();
 
         int height = inputImg.getHeight();
-
-        if (perm.length != height)
-            throw new IllegalArgumentException("Taille d'image <> taille permutation");
-
 
         BufferedImage out = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
 
