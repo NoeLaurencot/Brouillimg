@@ -10,13 +10,14 @@ public class Brouillimg {
 
     public static void main(String[] args) throws IOException {
         if (args.length < 2) {
-            System.err.println("Usage: java Brouillimg <process> <image_claire> <clé> [image_sortie] [image de comparaison]");
+            System.err.println(
+                    "Usage: java Brouillimg <process> <image_claire> <clé> [image_sortie] [image de comparaison]");
             System.exit(1);
         }
 
         String process = args[0];
         String inPath = args[1];
-        String outPath = (args.length >= 3) ? args[3] : "out.png";
+        String outPath = (args.length >= 4) ? args[3] : "out.png";
 
         // Masque 0x7FFF pour garantir que la clé ne dépasse pas les 15 bits
 
@@ -35,28 +36,31 @@ public class Brouillimg {
         System.out.println("Dimensions de l'image : " + width + "x" + height);
 
         // Pré‑calcul des lignes en niveaux de gris pour accélérer le calcul du critère
-
         int[][] inputImageGL = rgb2gl(inputImage);
+
         int[] perm = generatePermutation(height, key);
 
         switch (process) {
             case "scramble":
                 BufferedImage scrambledImage = scrambleLines(inputImage, perm);
                 ImageIO.write(scrambledImage, "png", new File(outPath));
+                System.out.println("Image écrite: " + outPath);
                 break;
             case "unscramble":
-                BufferedImage unscrambledImage = unScrambleLines(inputImage, perm);
+                BufferedImage unScrambleImage = unScrambleLines(inputImage, perm);
                 if (args.length == 5) {
                     BufferedImage compImage = ImageIO.read(new File(args[4]));
-                    System.out.println("Image identique: " + isSameImage(unscrambledImage, compImage));
+                    System.out.println("Images identiques: " + isImageIdentical(unScrambleImage, compImage));
                 }
-                ImageIO.write(unscrambledImage, "png", new File(outPath));
+                System.out.println("Image écrite: " + outPath);
+                ImageIO.write(unScrambleImage, "png", new File(outPath));
+                break;
+            case "euclidean":
+                System.out.println(breakKey(inputImageGL));
                 break;
             default:
                 throw new IOException("Méthode non renseignée");
         }
-
-        System.out.println("Image écrite: " + outPath);
 
     }
 
@@ -113,12 +117,19 @@ public class Brouillimg {
     public static int[] generatePermutation(int size, int key) {
         int[] scrambleTable = new int[size];
         for (int i = 0; i < size; i++) {
-            scrambleTable[scrambledId(i, size, key)] = i;
+            scrambleTable[scrambleId(i, size, key)] = i;
         }
         return scrambleTable;
     }
 
-    public static boolean isSameImage(BufferedImage image1, BufferedImage image2) {
+    /**
+     * Vérifie si les deux images sont identiques
+     * 
+     * @param image1 image 1
+     * @param image2 image 2
+     * @return Vrai si les deux images sont identique, faux sinon
+     */
+    public static boolean isImageIdentical(BufferedImage image1, BufferedImage image2) {
         int height1 = image1.getHeight();
         int width1 = image1.getWidth();
 
@@ -141,7 +152,7 @@ public class Brouillimg {
     }
 
     /**
-     * <h3>Retourne l'offset de la clé</h3>
+     * Retourne l'offset de la clé
      * 
      * @param key clé de génération (15 bits)
      * @return l'offset de la clé
@@ -151,7 +162,7 @@ public class Brouillimg {
     }
 
     /**
-     * <h3>Retourne les step de la clé</h3>
+     * Retourne les step de la clé
      *
      * @param key clé de génération (15 bits)
      * @return Step de la clé de génération
@@ -190,23 +201,37 @@ public class Brouillimg {
     }
 
     /**
-     * Déchiffre les ligne selon une clé donnée.
+     * Génère l'inverse du tableau de permutation
+     * 
+     * @param perm tableau de permutation
+     * @return l'inverse du tableau de permutation
+     */
+    public static int[] generateInvertPermutation(int[] perm) {
+        int size = perm.length;
+        int[] invPerm = new int[size];
+        for (int i = 0; i < size; i++) {
+            invPerm[perm[i]] = i;
+        }
+        return invPerm;
+    }
+
+    /**
+     * Déchiffre les ligne selon un tableau de permutation donné.
      *
      * @param inputImg image d'entrée
      * @param perm     tableau permutation de la clé de déchifrement
      * @return image de sortie déchiffré
      */
-
     public static BufferedImage unScrambleLines(BufferedImage inputImg, int[] perm) {
         int width = inputImg.getWidth();
-
         int height = inputImg.getHeight();
 
         BufferedImage out = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        int[] rgb = new int[width];
+        int[] invPerm = generateInvertPermutation(perm);
 
-        int[] rgb = new int[height];
         for (int y = 0; y < height; y++) {
-            inputImg.getRGB(0, unScrambledId(y, perm), width, 1, rgb, 0, width);
+            inputImg.getRGB(0, invPerm[y], width, 1, rgb, 0, width);
             out.setRGB(0, y, width, 1, rgb, 0, width);
         }
 
@@ -222,8 +247,7 @@ public class Brouillimg {
      * @param key  clé de brouillage (15 bits)
      * @return indice de la ligne dans l'image brouillée (0..size-1)
      */
-
-    public static int scrambledId(int id, int size, int key) {
+    public static int scrambleId(int id, int size, int key) {
         int offset = getOffest(key);
         int step = getStep(key);
         return ((offset + (2 * step + 1) * id) % size);
@@ -231,21 +255,111 @@ public class Brouillimg {
     }
 
     /**
-     * Renvoie la position de la ligne id dans l'image claire.
-     *
-     * @param id   indice de la ligne dans l'image Brouillée (0..size-1)
-     * @param perm tableau de permutation de la clé de déchiffrage
-     * @return indice de la ligne dans l'image claire (0..size-1)
+     * Calcule la distance euclidienne entre deux lignes d'une image en niveaux de
+     * gris
+     * 
+     * @param inputImageGL image d'entrée en tableau 2D
+     * @param size         la taille de l'image
+     * @param row          le numéro de ligne de l'image (size - 1)
+     * @return distance euclidienne
      */
+    public static double euclideanDistance(int[][] inputImageGL, int size, int row) {
+        double distance = 0;
+        int xAvg = getTotalGL(inputImageGL, row, size) / size;
+        int yAvg = getTotalGL(inputImageGL, row + 1, size) / size;
+        for (int col = 0; col < size; col++) {
+            int x = inputImageGL[row][col] - xAvg;
+            int y = inputImageGL[row + 1][col] - yAvg;
 
-    public static int unScrambledId(int id, int[] perm) {
-        int i = 0;
-        while (i < perm.length && perm[i] != id) {
-            i++;
+            distance += Math.pow(x - y, 2);
         }
-        if (perm[i] == id)
-            id = i;
-        return id;
+
+        return Math.sqrt(distance);
+    }
+
+    /**
+     * Calcule la somme des niveaux de gris d'une ligne de l'image
+     * 
+     * @param inputImageGL image d'entrée
+     * @param row          numéro de ligne de l'image
+     * @param size         taille de l'image
+     * @return la somme des niveaux de gris de la ligne
+     */
+    public static int getTotalGL(int[][] inputImageGL, int row, int size) {
+        int result = 0;
+        for (int i = 0; i < size; i++) {
+            result += inputImageGL[row][i];
+        }
+        return result;
+    }
+
+    /**
+     * Calcule le score de la différence euclidienne
+     * <br>
+     * petit score = meilleur
+     * 
+     * @param inputImageGL image d'entrée en tableau 2D
+     * @return score de différence euclidienne
+     */
+    public static double scoreEuclidean(int[][] inputImageGL) {
+        int size = inputImageGL.length;
+        double score = 0;
+        for (int row = 0; row < size - 1; row++) {
+            score += euclideanDistance(inputImageGL, size, row);
+        }
+        return score;
+
+    }
+
+    /**
+     * Démélange les lignes d'une image en niveaux de gris en tableau 2D
+     * 
+     * @param inputImageGL image d'entrée en tableau 2D
+     * @param perm         tableau de permutation
+     * @return image en niveaux de gris démélangé, en tableau 2D
+     */
+    public static int[][] unScrambleGL(int[][] inputImageGL, int[] perm) {
+        int width = inputImageGL[0].length;
+        int height = inputImageGL.length;
+        int[][] out = new int[height][width];
+        int[] invPerm = generateInvertPermutation(perm);
+
+        for (int y = 0; y < height; y++) {
+            out[y] = inputImageGL[invPerm[y]];
+        }
+        return out;
+    }
+
+    /**
+     * Teste les clés en bruteforce
+     * 
+     * @param inputImageGL image d'entrée en niveaux de gris, en tableau 2D
+     * @return la meilleur clé
+     */
+    public static int breakKey(int[][] inputImageGL) {
+        int key = 0;
+        double score;
+        int size = inputImageGL.length;
+        int nKey = (int) Math.pow(2, 15);
+
+        int[] perm = generatePermutation(size, 1);
+        int[][] out = unScrambleGL(inputImageGL, perm);
+        double bestScore = scoreEuclidean(out);
+
+        for (int k = 1; k < nKey; k++) {
+            perm = generatePermutation(size, k);
+            out = unScrambleGL(inputImageGL, perm);
+
+            score = scoreEuclidean(out);
+
+            if (score < bestScore) {
+                bestScore = score;
+                key = k;
+            }
+            System.out.println("key: " + k + " best key: " + key);
+        }
+        return key;
+
     }
 
 }
