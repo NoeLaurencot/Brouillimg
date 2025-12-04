@@ -170,6 +170,35 @@ public class Brouillimg {
         return out;
 
     }
+    /**
+     * Déchiffre les ligne selon une clé donnée.
+     *
+     * @param inputImg image d'entrée
+     * @param perm     permutation des lignes (taille = hauteur de l'image)
+     * @return image de sortie déchiffré
+     */
+
+    public static BufferedImage unScrambleLines(BufferedImage inputImg, int key) {
+
+        int width = inputImg.getWidth();
+
+        int height = inputImg.getHeight();
+
+        if (perm.length != height)
+            throw new IllegalArgumentException("Taille d'image <> taille permutation");
+
+
+        BufferedImage out = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+
+        int[] rgb = new int[height];
+        for (int y = 0; y < height; y++) {
+            inputImg.getRGB(0, scrambledId(y,height,key), width, 1, rgb, 0, width);
+            out.setRGB(0, y, width, 1, rgb, 0, width);
+        }
+
+        return out;
+
+    }
 
     /**
      * Renvoie la position de la ligne id dans l'image brouillée.
@@ -181,7 +210,13 @@ public class Brouillimg {
      */
 
     public static int scrambledId(int id, int size, int key) {
-
+        int[] perm = generatePermutation(size, key);
+        int i = 0;
+        while (i < size && perm[i] != id) {
+            i++;
+        }
+         if (perm[i] == id)
+             id = i;
         return id;
 
     }
