@@ -10,17 +10,17 @@ public class Brouillimg {
 
     public static void main(String[] args) throws IOException {
         if (args.length < 2) {
-            System.err.println("Usage: java Brouillimg <image_claire> <clé> [image_sortie] <methode>");
+            System.err.println("Usage: java Brouillimg <methode> <image_claire> <clé> [image_sortie] [image de comparaison]");
             System.exit(1);
         }
 
-        String inPath = args[0];
-        String outPath = (args.length >= 3) ? args[2] : "out.png";
-        String method = args[3];
+        String method = args[0];
+        String inPath = args[1];
+        String outPath = (args.length >= 3) ? args[3] : "out.png";
 
         // Masque 0x7FFF pour garantir que la clé ne dépasse pas les 15 bits
 
-        int key = Integer.parseInt(args[1]) & 0x7FFF;
+        int key = Integer.parseInt(args[2]) & 0x7FFF;
 
         BufferedImage inputImage = ImageIO.read(new File(inPath));
 
@@ -37,15 +37,19 @@ public class Brouillimg {
         // Pré‑calcul des lignes en niveaux de gris pour accélérer le calcul du critère
 
         int[][] inputImageGL = rgb2gl(inputImage);
+        int[] perm = generatePermutation(height, key);
 
         switch (method) {
             case "scramble":
-                int[] perm = generatePermutation(height, key);
                 BufferedImage scrambledImage = scrambleLines(inputImage, perm);
                 ImageIO.write(scrambledImage, "png", new File(outPath));
                 break;
             case "unscramble":
-                BufferedImage unscrambledImage = unScrambleLines(inputImage, key);
+                BufferedImage unscrambledImage = unScrambleLines(inputImage, perm);
+                if (args.length == 5) {
+                    BufferedImage compImage = ImageIO.read(new File(args[4]));
+                    System.out.println("Image identique: " + isSameImage(unscrambledImage, compImage));
+                }
                 ImageIO.write(unscrambledImage, "png", new File(outPath));
                 break;
             default:
@@ -109,7 +113,7 @@ public class Brouillimg {
     public static int[] generatePermutation(int size, int key) {
         int[] scrambleTable = new int[size];
         for (int i = 0; i < size; i++) {
-            scrambleTable[scrambledId(i,size,key)] = i;
+            scrambleTable[scrambledId(i, size, key)] = i;
         }
         return scrambleTable;
     }
@@ -126,11 +130,12 @@ public class Brouillimg {
         }
 
         int i = 0;
-        
+
         while (i < width1 * height1) {
             if (image1.getRGB(i % width1, i / width1) != image2.getRGB(i % width2, i / width2)) {
                 return false;
             }
+            i++;
         }
         return true;
     }
@@ -188,7 +193,7 @@ public class Brouillimg {
      * Déchiffre les ligne selon une clé donnée.
      *
      * @param inputImg image d'entrée
-     * @param perm tableau permutation de la clé de déchifrement
+     * @param perm     tableau permutation de la clé de déchifrement
      * @return image de sortie déchiffré
      */
 
@@ -201,7 +206,7 @@ public class Brouillimg {
 
         int[] rgb = new int[height];
         for (int y = 0; y < height; y++) {
-            inputImg.getRGB(0, unScrambledId(y,perm), width, 1, rgb, 0, width);
+            inputImg.getRGB(0, unScrambledId(y, perm), width, 1, rgb, 0, width);
             out.setRGB(0, y, width, 1, rgb, 0, width);
         }
 
@@ -224,7 +229,6 @@ public class Brouillimg {
         return ((offset + (2 * step + 1) * id) % size);
 
     }
-
 
     /**
      * Renvoie la position de la ligne id dans l'image claire.
