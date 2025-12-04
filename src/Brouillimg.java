@@ -194,7 +194,7 @@ public class Brouillimg {
     public static int scrambledId(int id, int size, int key) {
         int offset = getOffest(key);
         int step = getStep(key);
-        ((offset + (2 * step + 1) * id) % size);
+        return ((offset + (2 * step + 1) * id) % size);
 
     }
 
