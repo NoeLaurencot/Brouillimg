@@ -209,7 +209,7 @@ public class Brouillimg {
 
     public static int unScrambledId(int id, int[] perm) {
         int i = 0;
-        while (i < size && perm[i] != id) {
+        while (i < perm.length && perm[i] != id) {
             i++;
         }
         if (perm[i] == id)
