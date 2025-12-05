@@ -125,6 +125,20 @@ public class Brouillimg {
     }
 
     /**
+     * Génère l'inverse du tableau de permutation
+     * 
+     * @param perm tableau de permutation
+     * @return l'inverse du tableau de permutation
+     */
+    public static int[] generateInvertPermutation(int[] perm, int size) {
+        int[] invPerm = new int[size];
+        for (int i = 0; i < size; i++) {
+            invPerm[perm[i]] = i;
+        }
+        return invPerm;
+    }
+
+    /**
      * Vérifie si les deux images sont identiques
      * 
      * @param image1 image 1
@@ -193,28 +207,13 @@ public class Brouillimg {
 
         BufferedImage out = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
 
-        int[] rgb = new int[height];
-        for (int y = 0; y < height; y++) {
+        int[] rgb = new int[width];
+        for (int y = 0; y < height; y++) { 
             inputImg.getRGB(0, perm[y], width, 1, rgb, 0, width);
             out.setRGB(0, y, width, 1, rgb, 0, width);
         }
         return out;
 
-    }
-
-    /**
-     * Génère l'inverse du tableau de permutation
-     * 
-     * @param perm tableau de permutation
-     * @return l'inverse du tableau de permutation
-     */
-    public static int[] generateInvertPermutation(int[] perm) {
-        int size = perm.length;
-        int[] invPerm = new int[size];
-        for (int i = 0; i < size; i++) {
-            invPerm[perm[i]] = i;
-        }
-        return invPerm;
     }
 
     /**
@@ -230,7 +229,7 @@ public class Brouillimg {
 
         BufferedImage out = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         int[] rgb = new int[width];
-        int[] invPerm = generateInvertPermutation(perm);
+        int[] invPerm = generateInvertPermutation(perm, height);
 
         for (int y = 0; y < height; y++) {
             inputImg.getRGB(0, invPerm[y], width, 1, rgb, 0, width);
@@ -239,6 +238,25 @@ public class Brouillimg {
 
         return out;
 
+    }
+
+    /**
+     * Démélange les lignes d'une image en niveaux de gris en tableau 2D
+     * 
+     * @param inputImageGL image d'entrée en tableau 2D
+     * @param perm         tableau de permutation
+     * @return image en niveaux de gris démélangé, en tableau 2D
+     */
+    public static int[][] unScrambleGL(int[][] inputImageGL, int[] perm) {
+        int width = inputImageGL[0].length;
+        int height = inputImageGL.length;
+        int[][] out = new int[height][width];
+        int[] invPerm = generateInvertPermutation(perm, height);
+
+        for (int y = 0; y < height; y++) {
+            out[y] = inputImageGL[invPerm[y]];
+        }
+        return out;
     }
 
     /**
@@ -303,10 +321,10 @@ public class Brouillimg {
      * @param inputImageGL image d'entrée en tableau 2D
      * @return score de différence euclidienne
      */
-    public static double scoreEuclidean(int[][] inputImageGL) {
+    public static double scoreEuclidean(int[][] inputImageGL, int lineJump) {
         int size = inputImageGL.length;
         double score = 0;
-        for (int row = 0; row < size - 1; row += 1) {
+        for (int row = 0; row < size - 1; row += lineJump) {
             score += euclideanDistance(inputImageGL, size, row);
         }
         return score;
@@ -348,10 +366,10 @@ public class Brouillimg {
      * @param inputImageGL
      * @return
      */
-    public static double scorePearson(int[][] inputImageGL) {
+    public static double scorePearson(int[][] inputImageGL, int lineJump) {
         int size = inputImageGL.length;
         double score = 0;
-        for (int row = 0; row < size - 1; row++) {
+        for (int row = 0; row < size - 1; row += lineJump) {
             score += pearsonCorrelation(inputImageGL, row, size);
         }
         return score;
@@ -370,29 +388,31 @@ public class Brouillimg {
         double bestScore;
         int nKeyS = 128;
         int nKeyR = (int) Math.pow(2, 15);
+        int sLineJump = 10; // Combien de lignes sont sauté pour trouver le s
+        int rLineJump = 1; // Combien de lignes sont sauté pour trouver le r
 
         int[] perm = generatePermutation(size, key);
         int[][] out = unScrambleGL(inputImageGL, perm);
         switch (process) {
             case "euclidean":
-                bestScore = scoreEuclidean(out);
+                bestScore = scoreEuclidean(out, sLineJump);
                 for (int k = 1; k < nKeyS; k++) {
                     perm = generatePermutation(size, k);
                     out = unScrambleGL(inputImageGL, perm);
 
-                    score = scoreEuclidean(out);
+                    score = scoreEuclidean(out, sLineJump);
 
                     if (score < bestScore) {
                         bestScore = score;
                         key = k;
                     }
                 }
-                bestScore = scoreEuclidean(out);
+                bestScore = scoreEuclidean(out, rLineJump);
                 for (int k = key; k < nKeyR; k += nKeyS) {
                     perm = generatePermutation(size, k);
                     out = unScrambleGL(inputImageGL, perm);
 
-                    score = scoreEuclidean(out);
+                    score = scoreEuclidean(out, rLineJump);
 
                     if (score < bestScore) {
                         bestScore = score;
@@ -401,24 +421,24 @@ public class Brouillimg {
                 }
                 break;
             case "pearson":
-                bestScore = scorePearson(out);
+                bestScore = scorePearson(out, sLineJump);
                 for (int k = 1; k < nKeyS; k++) {
                     perm = generatePermutation(size, k);
                     out = unScrambleGL(inputImageGL, perm);
 
-                    score = scorePearson(out);
+                    score = scorePearson(out, rLineJump);
 
                     if (score > bestScore) {
                         bestScore = score;
                         key = k;
                     }
                 }
-                bestScore = scorePearson(out);
+                bestScore = scorePearson(out, rLineJump);
                 for (int k = key; k < nKeyR; k += nKeyS) {
                     perm = generatePermutation(size, k);
                     out = unScrambleGL(inputImageGL, perm);
 
-                    score = scorePearson(out);
+                    score = scorePearson(out, rLineJump);
 
                     if (score > bestScore) {
                         bestScore = score;
@@ -431,25 +451,6 @@ public class Brouillimg {
         }
         return key;
 
-    }
-
-    /**
-     * Démélange les lignes d'une image en niveaux de gris en tableau 2D
-     * 
-     * @param inputImageGL image d'entrée en tableau 2D
-     * @param perm         tableau de permutation
-     * @return image en niveaux de gris démélangé, en tableau 2D
-     */
-    public static int[][] unScrambleGL(int[][] inputImageGL, int[] perm) {
-        int width = inputImageGL[0].length;
-        int height = inputImageGL.length;
-        int[][] out = new int[height][width];
-        int[] invPerm = generateInvertPermutation(perm);
-
-        for (int y = 0; y < height; y++) {
-            out[y] = inputImageGL[invPerm[y]];
-        }
-        return out;
     }
 
 }
