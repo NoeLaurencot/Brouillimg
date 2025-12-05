@@ -57,7 +57,8 @@ public class Brouillimg {
                 break;
             case "euclidean",
                     "pearson":
-                System.out.println(breakKey(inputImageGL, process));
+                key = breakKey(inputImageGL, process);
+                System.out.println("Clé trouvé: " + key);
                 break;
             default:
                 throw new IOException("Méthode non renseignée");
@@ -385,11 +386,9 @@ public class Brouillimg {
                         bestScore = score;
                         key = k;
                     }
-                    System.out.println("key: " + k + " best key: " + key);
-                    System.out.println("R à trouver");
                 }
                 bestScore = scoreEuclidean(out);
-                for (int k = key; k < nKeyR; k += 128) {
+                for (int k = key; k < nKeyR; k += nKeyS) {
                     perm = generatePermutation(size, k);
                     out = unScrambleGL(inputImageGL, perm);
 
@@ -399,7 +398,6 @@ public class Brouillimg {
                         bestScore = score;
                         key = k;
                     }
-                    System.out.println("key: " + k + " best key: " + key + " " + score);
                 }
                 break;
             case "pearson":
@@ -414,10 +412,9 @@ public class Brouillimg {
                         bestScore = score;
                         key = k;
                     }
-                    System.out.println("key: " + k + " best key: " + key);
                 }
                 bestScore = scorePearson(out);
-                for (int k = key; k < nKeyR; k += 128) {
+                for (int k = key; k < nKeyR; k += nKeyS) {
                     perm = generatePermutation(size, k);
                     out = unScrambleGL(inputImageGL, perm);
 
@@ -427,7 +424,6 @@ public class Brouillimg {
                         bestScore = score;
                         key = k;
                     }
-                    System.out.println("key: " + k + " best key: " + key + " " + score);
                 }
                 break;
             default:
