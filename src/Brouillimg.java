@@ -3,6 +3,7 @@
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import javax.imageio.ImageIO;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -57,7 +58,8 @@ public class Brouillimg {
                 ImageIO.write(unScrambledImage, "png", new File(outPath));
                 break;
             case "euclidean",
-                    "pearson":
+                    "pearson",
+                    "neighboor":
                 key = breakKey(inputImageGL, process);
                 System.out.println("Clé trouvé: " + key);
                 perm = generatePermutation(height, key);
@@ -233,7 +235,7 @@ public class Brouillimg {
         int height = inputImg.getHeight();
 
         BufferedImage out = new BufferedImage(width,
-            height, BufferedImage.TYPE_INT_ARGB);
+                height, BufferedImage.TYPE_INT_ARGB);
 
         int[] rgb = new int[width];
         int[] invPerm = generateInvertPermutation(perm, height);
@@ -290,17 +292,17 @@ public class Brouillimg {
      * @param row          le numéro de ligne de l'image (size - 1)
      * @return distance euclidienne
      */
-    public static double euclideanDistance(int[][] inputImageGL,
-                                            int size,
-                                            int row) {
+    public static double euclideanDistance(int[][] inputImageGL, int row,
+            int rowOffset) {
+        int height = inputImageGL.length;
+        int width = inputImageGL[0].length;
         double distance = 0;
-        int xAvg = getTotalGL(inputImageGL, row, size) / size;
-        int yAvg = getTotalGL(inputImageGL, row + 1, size) / size;
-        for (int col = 0; col < size; col++) {
-            int x = inputImageGL[row][col] - xAvg;
-            int y = inputImageGL[row + 1][col] - yAvg;
 
-            distance += Math.pow((double) x - y, 2);
+        for (int col = 0; col < width; col++) {
+            double x = inputImageGL[row][col];
+            double y = inputImageGL[(row + rowOffset + height) % height][col];
+
+            distance += ((double) x - y) * ((double) x - y);
         }
 
         return Math.sqrt(distance);
@@ -328,14 +330,14 @@ public class Brouillimg {
      * petit score = meilleur
      * 
      * @param inputImageGL image d'entrée en tableau 2D
-     * @param lineJump le nombre de lignes à sauter pour comparer
+     * @param lineJump     le nombre de lignes à sauter pour comparer
      * @return score de différence euclidienne
      */
     public static double scoreEuclidean(int[][] inputImageGL, int lineJump) {
         int size = inputImageGL.length;
         double score = 0;
         for (int row = 0; row < size - 1; row += lineJump) {
-            score += euclideanDistance(inputImageGL, size, row);
+            score += euclideanDistance(inputImageGL, row, 1);
         }
         return score;
 
@@ -351,22 +353,25 @@ public class Brouillimg {
      * @return correlation de pearson de -1 à 1
      */
     public static double pearsonCorrelation(int[][] inputImageGL,
-        int row, int size) {
+            int row, int size) {
+        int width = inputImageGL[0].length;
 
-        int xAvg = getTotalGL(inputImageGL, row, size) / size;
-        int yAvg = getTotalGL(inputImageGL, row + 1, size) / size;
-        int xySum = 0;
-        int xSum = 0;
-        int ySum = 0;
-        for (int col = 0; col < size; col++) {
-            int x = inputImageGL[row][col] - xAvg;
-            int y = inputImageGL[row + 1][col] - yAvg;
+        double xAvg = getTotalGL(inputImageGL, row, width) / (double) width;
+        double yAvg = getTotalGL(inputImageGL, row + 1, width) / (double) width;
+
+        double xySum = 0;
+        double xSum = 0;
+        double ySum = 0;
+
+        for (int col = 0; col < width; col++) {
+            double x = inputImageGL[row][col] - xAvg;
+            double y = inputImageGL[row + 1][col] - yAvg;
 
             xySum += x * y;
-            xSum += Math.pow(x, 2);
-            ySum += Math.pow(y, 2);
+            xSum += x * x;
+            ySum += y * y;
         }
-        // System.out.println(xySum + " " + xSum + " " + ySum);
+
         return xySum / (Math.sqrt(xSum) * Math.sqrt(ySum));
     }
 
@@ -387,8 +392,6 @@ public class Brouillimg {
         return score;
     }
 
-
-
     /**
      * Teste les clés en bruteforce
      * 
@@ -397,7 +400,7 @@ public class Brouillimg {
      */
     public static int breakKey(int[][] inputImageGL, String process) {
         final int N_KEY_S = 128;
-        final int N_KEY_R = (int) Math.pow(2, 15);
+        final int N_KEY_R = 32768;
         final int S_LINE_JUMP = 10; // Combien de lignes sont sauté pour trouver le s
         final int R_LINE_JUMP = 1; // Combien de lignes sont sauté pour trouver le r
         final int S_KEY_JUMP = 1;
@@ -417,20 +420,25 @@ public class Brouillimg {
                 key = breakKeyPearson(inputImageGL, N_KEY_R, R_LINE_JUMP, key, R_KEY_JUMP);
                 System.out.println("R: " + getOffest(key));
                 break;
+            case "neighboor":
+                key = breakKeyNeighboor(inputImageGL);
+                break;
             default:
                 break;
         }
         return key;
 
-    }    /**
+    }
+
+    /**
      * Trouve une partie de la clé en bruteforce avec la distance euclidienne
      * 
      * @param inputImageGL Image d'entrée en niveaux de gris, en tableau 2D
-     * @param nKey Le nombre de clé sur leqquelles itérer
-     * @param lineJump Le nombre de lignes à sauter pour la comparaison
-     * @param keyStart La clé avec laquelle on commence
-     * @param keyJump Le nombre de clé à sauter
-     * @return
+     * @param nKey         Le nombre de clé sur leqquelles itérer
+     * @param lineJump     Le nombre de lignes à sauter pour la comparaison
+     * @param keyStart     La clé avec laquelle on commence
+     * @param keyJump      Le nombre de clé à sauter
+     * @return La clé trouvée
      */
     public static int breakKeyEuclidean(int[][] inputImageGL, int nKey, int lineJump, int keyStart, int keyJump) {
         double score;
@@ -444,7 +452,6 @@ public class Brouillimg {
             perm = generatePermutation(size, k);
             out = unScrambleGL(inputImageGL, perm);
 
-
             score = scoreEuclidean(out, lineJump);
 
             if (score < bestScore) {
@@ -452,7 +459,7 @@ public class Brouillimg {
                 key = k;
             }
         }
-        
+
         return key;
     }
 
@@ -460,11 +467,11 @@ public class Brouillimg {
      * Trouve une partie de la clé en bruteforce avec la corrélation de pearson
      * 
      * @param inputImageGL Image d'entrée en niveaux de gris, en tableau 2D
-     * @param nKey Le nombre de clé sur leqquelles itérer
-     * @param lineJump Le nombre de lignes à sauter pour la comparaison
-     * @param keyStart La clé avec laquelle on commence
-     * @param keyJump Le nombre de clé à sauter
-     * @return
+     * @param nKey         Le nombre de clé sur leqquelles itérer
+     * @param lineJump     Le nombre de lignes à sauter pour la comparaison
+     * @param keyStart     La clé avec laquelle on commence
+     * @param keyJump      Le nombre de clé à sauter
+     * @return La clé trouvée
      */
     public static int breakKeyPearson(int[][] inputImageGL, int nKey, int lineJump, int keyStart, int keyJump) {
         double score;
@@ -485,8 +492,110 @@ public class Brouillimg {
                 key = k;
             }
         }
-        
+
         return key;
     }
 
+    /**
+     * Trouve la clé en repérant 2 lignes voisines,
+     * et en faisant la différence modulaire
+     * 
+     * @param inputImageGL Image d'entrée en niveaux de gris, en tableau 2D
+     * @return la meilleure clé trouvée
+     */
+    public static int breakKeyNeighboor(int[][] inputImageGL) {
+        int size = inputImageGL.length;
+        int middleIndex = 0; // veleur arbitraire
+        int[] chunk = getSimilarLineChunk(inputImageGL, middleIndex);
+        int a = getSmallestModularDiff(chunk, size);
+        int s = (a - 1) / 2;
+        int r = getOffsetNeighboor(inputImageGL, a);
+        int key;
+
+        System.out.println("S: " + s);
+        System.out.println("R: " + r);
+
+        key = r * 128 + s;
+
+        return key;
+    }
+
+    /**
+     * Trouve r en repérant une rupture dans la
+     * dsistance euclidienne
+     * 
+     * @param inputImageGL Image d'entrée en niveaux de gris, en tableau 2D
+     * @param a            La différence modulaire (donc la partie qui se fait
+     *                     multiplier
+     *                     dans la formule de brouillage)
+     * @return L'offset de la clé
+     */
+    public static int getOffsetNeighboor(int[][] inputImageGL, int a) {
+        int size = inputImageGL.length;
+        double worstScore = Double.MIN_VALUE;
+        int worstLine = 0;
+
+        for (int i = 0; i < size; i++) {
+            double score = euclideanDistance(inputImageGL, i, a);
+            if (score > worstScore) {
+                worstScore = score;
+                worstLine = i;
+            }
+        }
+
+        int r = (worstLine + a) % size;
+
+        return r;
+    }
+
+    /**
+     * Trouve la plus petite différence modulaire entre le milieu du chunk
+     * et les index des lignes voisines
+     * 
+     * @param chunk Tableau de 3 éléments: index de ligne voisine 1
+     *              - index de ligne voisine 2 - index du milieu
+     * @param size  Hauteur de l'image
+     * @return La plus petite différence modulaire des deux dans le chunk
+     */
+    public static int getSmallestModularDiff(int[] chunk, int size) {
+        int n1 = chunk[0];
+        int n2 = chunk[1];
+        int mid = chunk[2];
+
+        int diff1 = (n1 - mid + size) % size;
+        int diff2 = (n2 - mid + size) % size;
+
+        return Math.min(diff1, diff2);
+    }
+
+    /**
+     * Trouve les lignes voisines d'une ligne dans une image brouillée
+     * 
+     * @param inputImageGL Image d'entrée en niveaux de gris, en tableau 2D
+     * @param index        Index de la ligne entre les deux voisines
+     * @return Tableau avec 3 éléments: index de ligne voisine 1
+     *         - index de ligne voisine 2 - index du milieu
+     */
+    public static int[] getSimilarLineChunk(int[][] inputImageGL, int index) {
+        int size = inputImageGL.length;
+        double bestScore = Double.MAX_VALUE;
+        double secondBestScore = Double.MAX_VALUE;
+        double score;
+        int[] chunk = new int[3];
+
+        for (int i = 1; i < size; i++) {
+            score = euclideanDistance(inputImageGL, index, i);
+            if (score < bestScore) {
+                secondBestScore = bestScore;
+                bestScore = score;
+                chunk[0] = (i + index) % size;
+            } else if (score < secondBestScore) {
+                secondBestScore = score;
+                chunk[1] = (i + index) % size;
+            }
+        }
+        chunk[2] = index;
+
+        return chunk;
+    }
 }
