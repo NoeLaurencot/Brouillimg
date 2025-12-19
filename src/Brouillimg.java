@@ -61,7 +61,7 @@ public class Brouillimg {
                     "pearson",
                     "neighbor":
                 key = breakKey(inputImageGL, process);
-                System.out.println("Clé trouvé: " + key);
+                System.out.println("Clé trouvée: " + key);
                 perm = generatePermutation(height, key);
                 unScrambledImage = unScrambleLines(inputImage, perm);
                 System.out.println("Image écrite: " + outPath);
@@ -135,6 +135,7 @@ public class Brouillimg {
      * Génère l'inverse du tableau de permutation
      * 
      * @param perm tableau de permutation
+     * @param size taille du tableau de permutation
      * @return l'inverse du tableau de permutation
      */
     public static int[] generateInvertPermutation(int[] perm, int size) {
@@ -146,36 +147,7 @@ public class Brouillimg {
     }
 
     /**
-     * Vérifie si les deux images sont identiques
-     * 
-     * @param image1 image 1
-     * @param image2 image 2
-     * @return Vrai si les deux images sont identique, faux sinon
-     */
-    public static boolean isImageIdentical(BufferedImage image1, BufferedImage image2) {
-        int height1 = image1.getHeight();
-        int width1 = image1.getWidth();
-
-        int height2 = image2.getHeight();
-        int width2 = image2.getWidth();
-
-        if (height1 != height2 || width1 != width2) {
-            return false;
-        }
-
-        int i = 0;
-
-        while (i < width1 * height1) {
-            if (image1.getRGB(i % width1, i / width1) != image2.getRGB(i % width2, i / width2)) {
-                return false;
-            }
-            i++;
-        }
-        return true;
-    }
-
-    /**
-     * Retourne l'offset de la clé
+     * Retourne l'offset (r) de la clé
      * 
      * @param key clé de génération (15 bits)
      * @return l'offset de la clé
@@ -185,7 +157,7 @@ public class Brouillimg {
     }
 
     /**
-     * Retourne les step de la clé
+     * Retourne les step (s) de la clé
      *
      * @param key clé de génération (15 bits)
      * @return Step de la clé de génération
@@ -224,7 +196,7 @@ public class Brouillimg {
     }
 
     /**
-     * Déchiffre les ligne selon un tableau de permutation donné.
+     * Démélange les lignes selon un tableau de permutation donné.
      *
      * @param inputImg image d'entrée
      * @param perm     tableau permutation de la clé de déchifrement
@@ -288,17 +260,18 @@ public class Brouillimg {
      * d'une image en niveaux de gris
      * 
      * @param inputImageGL image d'entrée en tableau 2D
-     * @param size         la taille de l'image
      * @param row          le numéro de ligne de l'image (size - 1)
+     * @param rowOffset    à combien d'index est la deuxième ligne à comparer
      * @return distance euclidienne
      */
     public static double euclideanDistance(int[][] inputImageGL, int row,
             int rowOffset) {
         int height = inputImageGL.length;
         int width = inputImageGL[0].length;
+        final int STEP = 2; // Augmenter pour aller plus vite mais moins accurate
         double distance = 0;
 
-        for (int col = 0; col < width; col++) {
+        for (int col = 0; col < width; col += STEP) {
             double x = inputImageGL[row % height][col];
             double y = inputImageGL[(row + rowOffset + height) % height][col];
 
@@ -330,11 +303,11 @@ public class Brouillimg {
      * petit score = meilleur
      * 
      * @param inputImageGL image d'entrée en tableau 2D
-     * @param lineJump     le nombre de lignes à sauter pour comparer
      * @return score de différence euclidienne
      */
     public static double scoreEuclidean(int[][] inputImageGL) {
-        final int LINE_JUMP = 10; // Combien de lignes sont sauté
+        final int LINE_JUMP = 10; // Combien de lignes sont sautés, augmenter pour aller plus vite mais moins
+                                  // accurate
         int size = inputImageGL.length;
         double score = 0;
         for (int row = 0; row < size - 1; row += LINE_JUMP) {
@@ -395,9 +368,10 @@ public class Brouillimg {
     }
 
     /**
-     * Teste les clés en bruteforce
+     * Trouve la clé selon le process renseigné
      * 
      * @param inputImageGL image d'entrée en niveaux de gris, en tableau 2D
+     * @param process      la méthode de cassage de clé
      * @return la meilleur clé
      */
     public static int breakKey(int[][] inputImageGL, String process) {
@@ -432,12 +406,10 @@ public class Brouillimg {
     }
 
     /**
-     * Trouve une partie de la clé en bruteforce avec la distance euclidienne
+     * Trouve le step de la clé en bruteforce avec la distance euclidienne
      * 
      * @param inputImageGL Image d'entrée en niveaux de gris, en tableau 2D
-     * @param lineJump     Le nombre de lignes à sauter pour la comparaison
-     * @param keyStart     La clé avec laquelle on commence
-     * @param keyJump      Le nombre de clé à sauter
+     * @param nKey         nombre de clés à tester
      * @return La clé trouvée
      */
     public static int breakKeyEuclidean(int[][] inputImageGL, int nKey) {
@@ -464,13 +436,10 @@ public class Brouillimg {
     }
 
     /**
-     * Trouve une partie de la clé en bruteforce avec la corrélation de pearson
+     * Trouve le step de la clé en bruteforce avec la corrélation de pearson
      * 
      * @param inputImageGL Image d'entrée en niveaux de gris, en tableau 2D
-     * @param nKey         Le nombre de clé sur leqquelles itérer
-     * @param lineJump     Le nombre de lignes à sauter pour la comparaison
-     * @param keyStart     La clé avec laquelle on commence
-     * @param keyJump      Le nombre de clé à sauter
+     * @param nKey         Le nombre de clés à tester
      * @return La clé trouvée
      */
     public static int breakKeyPearson(int[][] inputImageGL, int nKey) {
@@ -497,7 +466,7 @@ public class Brouillimg {
     }
 
     /**
-     * Trouve la clé en repérant 2 lignes voisines,
+     * Trouve la clé en trouvant 2 lignes voisines,
      * et en faisant la différence modulaire
      * 
      * @param inputImageGL Image d'entrée en niveaux de gris, en tableau 2D
@@ -524,13 +493,12 @@ public class Brouillimg {
     }
 
     /**
-     * Trouve r en repérant une rupture dans la
-     * dsistance euclidienne
+     * Trouve l'offest en repérant une rupture dans la
+     * distance euclidienne
      * 
      * @param inputImageGL Image d'entrée en niveaux de gris, en tableau 2D
      * @param a            La différence modulaire (donc la partie qui se fait
-     *                     multiplier
-     *                     dans la formule de brouillage)
+     *                     multiplier dans la formule de brouillage)
      * @return L'offset de la clé
      */
     public static int findRScrambled(int[][] inputImageGL, int a) {
@@ -554,8 +522,7 @@ public class Brouillimg {
      * Trouve la plus petite différence modulaire entre le milieu du chunk
      * et les index des lignes voisines
      * 
-     * @param chunk Tableau de 3 éléments: index de ligne voisine 1
-     *              - index de ligne voisine 2 - index du milieu
+     * @param chunk Tableau de 3 index de lignes voisines
      * @param size  Hauteur de l'image
      * @return La plus petite différence modulaire des deux dans le chunk
      */
@@ -575,8 +542,7 @@ public class Brouillimg {
      * 
      * @param inputImageGL Image d'entrée en niveaux de gris, en tableau 2D
      * @param index        Index de la ligne entre les deux voisines
-     * @return Tableau avec 3 éléments: index de ligne voisine 1
-     *         - index de ligne voisine 2 - index du milieu
+     * @return Tableau de 3 index de lignes voisines
      */
     public static int[] getNeighborLineChunk(int[][] inputImageGL, int index) {
         int size = inputImageGL.length;
