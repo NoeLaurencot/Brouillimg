@@ -16,26 +16,26 @@ public class Profiler {
         return result;
     }
 
-    public static int analyzeFindOffest(BiFunction<int[], Integer, Integer> method, int[] chunk, Integer jump) {
+    public static int analyzeFindOffest(BiFunction<int[][], Integer, Integer> method, int[][] imageGL, Integer jump) {
         long time = timestamp();
 
-        int result = method.apply(chunk,jump);
+        int result = method.apply(imageGL,jump);
 
         time = timestamp() - time;
 
-        System.out.printf("Time elapsed : %.2f ms\n", time / 1e6);
+        System.out.printf("Time elapsed for R : %.2f ms\n", time / 1e6);
 
         return result;
     }
 
-    public static int analyzeSmallestModularDiff(BiFunction<int[],Integer,Integer> method,int[] chunk,int size){
+    public static int[] analyzeFindChunk(BiFunction<int[][], Integer, int[]> method, int[][] imageGL, int index){
         long time = timestamp();
 
-        int result = method.apply(chunk,size);
+        int result[] = method.apply(imageGL, index);
 
         time = timestamp() - time;
 
-        System.out.println("Time for Smallest Modular Diff : " + (time/1e6) + "ms");
+        System.out.printf("Time elapsed to find chunk : %.2f ms\n", time / 1e6);
 
         return result;
     }

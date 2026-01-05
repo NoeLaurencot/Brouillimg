@@ -476,11 +476,11 @@ public class Brouillimg {
         int size = inputImageGL.length;
 
         int middleIndex = (int) (Math.random() * size); // valeur arbitraire
-        int[] chunk = getNeighborLineChunk(inputImageGL, middleIndex);
+        int[] chunk = Profiler.analyzeFindChunk(Brouillimg::getNeighborLineChunk, inputImageGL, middleIndex);
         int jump = getSmallestModularDiff(chunk, size); // jump = 2s + 1
 
         int s = (jump - 1) / 2;
-        int r = findRScrambled(inputImageGL, jump);
+        int r = Profiler.analyzeFindOffest(Brouillimg::findRScrambled,inputImageGL, jump);
         int key;
 
         System.out.println("S: " + s);
@@ -532,10 +532,6 @@ public class Brouillimg {
 
         int diff1 = (n1 - mid + size) % size;
         int diff2 = (n2 - mid + size) % size;
-
-        System.out.println("Ligne milieu: " + mid);
-        System.out.println("Ligne précédente: " + Math.min(diff1, diff2));
-        System.out.println("Ligne suivante: " + Math.max(diff1, diff2));
 
         return Math.min(diff1, diff2);
     }
