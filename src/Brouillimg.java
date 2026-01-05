@@ -1,4 +1,4 @@
-// LAMOUR Pierre, LAURENÇOT Noé, S1B2
+// LAMOUR Pierre, LAURENÇOT Noé, S1B2, n°12
 
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -184,7 +184,8 @@ public class Brouillimg {
         if (perm.length != height)
             throw new IllegalArgumentException("Taille d'image <> taille permutation");
 
-        BufferedImage out = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        BufferedImage out = new BufferedImage(width, height,
+                BufferedImage.TYPE_INT_ARGB);
 
         int[] rgb = new int[width];
         for (int y = 0; y < height; y++) {
@@ -268,7 +269,7 @@ public class Brouillimg {
             int rowOffset) {
         int height = inputImageGL.length;
         int width = inputImageGL[0].length;
-        final int STEP = 2; // Augmenter pour aller plus vite mais moins accurate
+        final int STEP = 2; // Combien de pixels sont sautés
         double distance = 0;
 
         for (int col = 0; col < width; col += STEP) {
@@ -306,8 +307,8 @@ public class Brouillimg {
      * @return score de différence euclidienne
      */
     public static double scoreEuclidean(int[][] inputImageGL) {
-        final int LINE_JUMP = 10; // Combien de lignes sont sautés, augmenter pour aller plus vite mais moins
-                                  // accurate
+        // Combien de lignes sont sautés
+        final int LINE_JUMP = 10;
         int size = inputImageGL.length;
         double score = 0;
         for (int row = 0; row < size - 1; row += LINE_JUMP) {
@@ -478,7 +479,7 @@ public class Brouillimg {
 
         int middleIndex = (int) (Math.random() * size); // valeur arbitraire
         int[] chunk = getNeighborLineChunk(inputImageGL, middleIndex);
-        a = getSmallestModularDiff(chunk, size);
+        a = getSmallestModularDiff(chunk, size); // a = 2s + 1
 
         int s = (a - 1) / 2;
         int r = findRScrambled(inputImageGL, a);
@@ -487,7 +488,7 @@ public class Brouillimg {
         System.out.println("S: " + s);
         System.out.println("R: " + r);
 
-        key = r * 128 + s;
+        key = (r * 128) + s;
 
         return key;
     }
@@ -503,7 +504,7 @@ public class Brouillimg {
      */
     public static int findRScrambled(int[][] inputImageGL, int a) {
         int size = inputImageGL.length;
-        int maxSeam = 256;
+        int maxSeam = 255; // Valeur max sur 8 bits
         double worstScore = 0;
         int worstLine = 0;
 
@@ -533,6 +534,10 @@ public class Brouillimg {
 
         int diff1 = (n1 - mid + size) % size;
         int diff2 = (n2 - mid + size) % size;
+
+        System.out.println("Ligne milieu: " + mid);
+        System.out.println("Ligne précédente: " + Math.min(diff1, diff2));
+        System.out.println("Ligne suivante: " + Math.max(diff1, diff2));
 
         return Math.min(diff1, diff2);
     }
