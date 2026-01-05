@@ -60,7 +60,6 @@ public class Brouillimg {
             case "euclidean",
                     "pearson",
                     "neighbor":
-                Profiler.init();
                 key = Profiler.analyzeKeyBreaker(Brouillimg::breakKey,inputImageGL,process);
                 System.out.println("Clé trouvée: " + key);
                 perm = generatePermutation(height, key);
