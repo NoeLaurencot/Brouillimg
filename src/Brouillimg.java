@@ -79,7 +79,6 @@ public class Brouillimg {
      * @param inputRGB image d'entrée en RGB
      * @return tableau 2D des niveaux de gris (0-255)
      */
-
     public static int[][] rgb2gl(BufferedImage inputRGB) {
 
         final int height = inputRGB.getHeight();
@@ -269,7 +268,7 @@ public class Brouillimg {
             int rowOffset) {
         int height = inputImageGL.length;
         int width = inputImageGL[0].length;
-        final int STEP = 2; // Combien de pixels sont sautés
+        final int STEP = width / 24; // Combien de pixels sont sautés
         double distance = 0;
 
         for (int col = 0; col < width; col += STEP) {
@@ -474,15 +473,14 @@ public class Brouillimg {
      * @return la meilleure clé trouvée
      */
     public static int breakKeyNeighbor(int[][] inputImageGL) {
-        int a;
         int size = inputImageGL.length;
 
         int middleIndex = (int) (Math.random() * size); // valeur arbitraire
         int[] chunk = getNeighborLineChunk(inputImageGL, middleIndex);
-        a = getSmallestModularDiff(chunk, size); // a = 2s + 1
+        int jump = getSmallestModularDiff(chunk, size); // jump = 2s + 1
 
-        int s = (a - 1) / 2;
-        int r = findRScrambled(inputImageGL, a);
+        int s = (jump - 1) / 2;
+        int r = findRScrambled(inputImageGL, jump);
         int key;
 
         System.out.println("S: " + s);
