@@ -60,7 +60,8 @@ public class Brouillimg {
             case "euclidean",
                     "pearson",
                     "neighbor":
-                key = breakKey(inputImageGL, process);
+                Profiler.init();
+                key = Profiler.analyzeKeyBreaker(Brouillimg::breakKey,inputImageGL,process);
                 System.out.println("Clé trouvée: " + key);
                 perm = generatePermutation(height, key);
                 unScrambledImage = unScrambleLines(inputImage, perm);
