@@ -31,14 +31,14 @@ public class Profiler {
         return result;
     }
 
-    public static int[] analyzeFindChunk(BiFunction<int[][], Integer, int[]> method, int[][] imageGL, int index){
+    public static int analyzeFindNeighbor(BiFunction<int[][], Integer, Integer> method, int[][] imageGL, int index){
         long time = timestamp();
 
-        int result[] = method.apply(imageGL, index);
+        int result = method.apply(imageGL, index);
 
         time = timestamp() - time;
 
-        System.out.printf("Time elapsed to find chunk : %.2f ms\n", time / 1e6);
+        System.out.printf("Time elapsed to find neighbor : %.2f ms\n", time / 1e6);
 
         return result;
     }

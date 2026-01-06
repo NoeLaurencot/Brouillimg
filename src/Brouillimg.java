@@ -12,6 +12,7 @@ import java.util.stream.IntStream;
 
 public class Brouillimg {
     static final Scanner input = new Scanner(System.in);
+    static final int HORIZONTAL_STEP = 256; // Nmbr de colonnes voulues
 
     public static void main(String[] args) throws IOException {
         if (args.length < 2) {
@@ -282,14 +283,14 @@ public class Brouillimg {
                                            int rowOffset) {
         int height = inputImageGL.length;
         int width = inputImageGL[0].length;
-        final int STEP = width / 256 + 1; // Combien de colonnes sont sautés
+        final int STEP = width / HORIZONTAL_STEP + 1; // Combien de colonnes sont sautés
         double distance = 0;
 
         for (int col = 0; col < width; col += STEP) {
             double x = inputImageGL[row % height][col];
             double y = inputImageGL[(row + rowOffset + height) % height][col];
 
-            distance += ( x - y) * ( x - y);
+            distance += (x - y) * (x - y);
         }
 
         return Math.sqrt(distance);
@@ -342,7 +343,7 @@ public class Brouillimg {
     public static double pearsonCorrelation(int[][] inputImageGL,
                                             int row) {
         int width = inputImageGL[0].length;
-        final int STEP = (width / 256) + 1;
+        final int STEP = (width / HORIZONTAL_STEP) + 1;
 
         double xAvg = getTotalGL(inputImageGL, row, width) / (double) width;
         double yAvg = getTotalGL(inputImageGL, row + 1, width) / (double) width;
@@ -468,6 +469,12 @@ public class Brouillimg {
         return key;
     }
 
+    /**
+     * Trouve la meilleur clé avec la distance euclidienne
+     *
+     * @param inputImageGL Image d'entrée en niveau de gris
+     * @return la meilleur clé trouvée
+     */
     public static int breakKeyEuclidean(int[][] inputImageGL) {
         int s = Profiler.analyzeFindStep(Brouillimg::findSEuclidean, inputImageGL);
         int r = Profiler.analyzeFindOffest(Brouillimg::findRScrambled, inputImageGL, 2 * s + 1);
@@ -479,6 +486,12 @@ public class Brouillimg {
         return key;
     }
 
+    /**
+     * Trouve la meilleur clé avec la corrélation de pearson
+     *
+     * @param inputImageGL Image d'entrée en niveau de gris
+     * @return la meilleur clé trouvée
+     */
     public static int breakKeyPearson(int[][] inputImageGL) {
         int s = Profiler.analyzeFindStep(Brouillimg::findSPearson, inputImageGL);
         int r = Profiler.analyzeFindOffest(Brouillimg::findRScrambled, inputImageGL, 2 * s + 1);
@@ -491,7 +504,7 @@ public class Brouillimg {
     }
 
     /**
-     * Trouve la clé en trouvant 2 lignes voisines,
+     * Trouve la clé en trouvant une ligne voisine,
      * et en faisant la différence modulaire
      *
      * @param inputImageGL Image d'entrée en niveaux de gris, en tableau 2D
@@ -501,30 +514,33 @@ public class Brouillimg {
         int size = inputImageGL.length;
 
         int middleIndex = bestLineVariance(inputImageGL);
-//        int middleIndex = 1;
-        int[] chunk = Profiler.analyzeFindChunk(Brouillimg::getNeighborLineChunk, inputImageGL, middleIndex);
-        int jump = getSmallestModularDiff(chunk, size); // jump = 2s + 1
+
+        int neighborIndex = Profiler.analyzeFindNeighbor(Brouillimg::findNeighbor, inputImageGL, middleIndex);
+
+        int jump = getModularDiff(middleIndex, neighborIndex, size); // jump = 2s + 1
 
         int s = (jump - 1) / 2;
         int r = Profiler.analyzeFindOffest(Brouillimg::findRScrambled, inputImageGL, jump);
-        int key;
 
-        System.out.println("S: " + s);
-        System.out.println("R: " + r);
+        System.out.println("S trouvé : " + s);
+        System.out.println("R trouvé : " + r);
 
-        key = (r * 128) + s;
-
-        return key;
+        return (r << 7) + s;
     }
 
+    /**
+     * Trouve la ligne avec le meilleur score de variance
+     *
+     * @param inputImageGL Image d'entrée en niveau de gris
+     * @return l'index de la ligne avec la plus grande variance (contraste)
+     */
     public static int bestLineVariance(int[][] inputImageGL) {
         int height = inputImageGL.length;
-        final int STEP = 10;
         int bestIndex = 0;
         int score;
         int bestScore = 0;
 
-        for (int i = 0; i < height; i += STEP) {
+        for (int i = 0; i < height; i++) {
             score = lineVarianceScore(inputImageGL, i);
 
             if (bestScore < score) {
@@ -536,9 +552,18 @@ public class Brouillimg {
         return bestIndex;
     }
 
+    /**
+     * Calcule la variance d'une ligne dans une image
+     * <br>
+     * + haut = meilleur score
+     *
+     * @param inputImageGL Image d'entrée en niveau de gris
+     * @param index        index de la ligne
+     * @return le score de variance
+     */
     public static int lineVarianceScore(int[][] inputImageGL, int index) {
         int width = inputImageGL[0].length;
-        final int STEP = width / 256 + 1;
+        final int STEP = width / HORIZONTAL_STEP + 1;
         int score = 0;
 
         for (int i = 0; i < width - 1; i += STEP) {
@@ -560,14 +585,18 @@ public class Brouillimg {
     public static int findRScrambled(int[][] inputImageGL, int jump) {
         int size = inputImageGL.length;
         int maxSeam = 256; // Valeur max de la coupure sur 8 bits
+        int maxLine = Math.min(maxSeam, size); // Min pour éviter le out of bounds si image < 256 de hauteur
         double worstScore = 0;
         int worstLine = 0;
 
-        for (int i = 0; i < Math.min(maxSeam, size); i++) { // Min pour éviter le out of bounds
-            double score = euclideanDistance(inputImageGL, i, -jump);
+        // Trouve la coupure en regardant la ligne d'avant et d'après
+        for (int line = 0; line < maxLine; line++) {
+            double beforeScore = euclideanDistance(inputImageGL, line, -jump);
+            double afterScore = euclideanDistance(inputImageGL, line, jump);
+            double score = beforeScore - afterScore;
             if (score > worstScore) {
                 worstScore = score;
-                worstLine = i;
+                worstLine = line;
             }
         }
 
@@ -578,58 +607,59 @@ public class Brouillimg {
      * Trouve la plus petite différence modulaire entre le milieu du chunk
      * et les index des lignes voisines
      *
-     * @param chunk Tableau de 3 index de lignes voisines
-     * @param size  Hauteur de l'image
-     * @return La plus petite différence modulaire des deux dans le chunk
+     * @param size        Hauteur de l'image
+     * @param middleIndex Index de la ligne dont on cherche la voisine
+     * @return La plus petite différence modulaire des deux
      */
-    public static int getSmallestModularDiff(int[] chunk, int size) {
-        int n1 = chunk[0];
-        int n2 = chunk[1];
-        int mid = chunk[2];
+    public static int getModularDiff(int middleIndex, int neighborIndex, int size) {
 
-        int diff1 = (n1 - mid + size) % size;
-        int diff2 = (n2 - mid + size) % size;
+        int diff1 = ((neighborIndex - middleIndex + size) % size);
+        int diff2 = ((middleIndex - neighborIndex + size) % size);
 
         return Math.min(diff1, diff2);
     }
 
     /**
-     * Trouve les lignes voisines d'une ligne dans une image brouillée
+     * Trouve la ligne voisin d'une ligne dans une image brouillée
      *
      * @param inputImageGL Image d'entrée en niveaux de gris, en tableau 2D
-     * @param index        Index de la ligne entre les deux voisines
-     * @return Tableau de 3 index de lignes voisines
+     * @param index        Index de la ligne avec laquelle comparer
+     * @return l'index de la voisine
      */
-    public static int[] getNeighborLineChunk(int[][] inputImageGL, int index) {
+    public static int findNeighbor(int[][] inputImageGL, int index) {
         int size = inputImageGL.length;
         double bestScore = Double.MAX_VALUE;
-        double secondBestScore = Double.MAX_VALUE;
+        int bestLine = 0;
         double score;
-        int[] chunk = new int[3];
 
-        for (int i = 1; i < size; i++) {
+        for (int i = 1; i < size; i += 2) {
             score = euclideanDistance(inputImageGL, index, i);
             if (score < bestScore) {
-                secondBestScore = bestScore;
                 bestScore = score;
-                chunk[1] = chunk[0];
-                chunk[0] = (i + index) % size;
-            } else if (score < secondBestScore) {
-                secondBestScore = score;
-                chunk[1] = (i + index) % size;
+                bestLine = (i + index) % size;
             }
         }
-        chunk[2] = index;
 
-        return chunk;
+        return bestLine;
     }
 
+    /**
+     * Fonction pour profiler les différents process de cassage de clé
+     *
+     * @param inputImage Image d'entrée non brouillée
+     * @param choice     Le choix de process
+     */
     public static void profileBreakKey(BufferedImage inputImage, int choice) {
         final int MAX_KEY = 128 * 256 - 1;
         int height = inputImage.getHeight();
-        int passedTest = 0;
+        int testPassed = 0;
+        int testPartialPassed = 0;
         int foundKey;
         int key;
+        int s;
+        int r;
+        int foundS;
+        int foundR;
         int[] perm;
         int[][] scrambledImageGL;
         BufferedImage scrambledImage;
@@ -643,7 +673,7 @@ public class Brouillimg {
             scrambledImage = scrambleLines(inputImage, perm);
             scrambledImageGL = rgb2gl(scrambledImage);
 
-            System.out.println("Test " + i + " / " + nTest);
+            System.out.println("Test " + (i + 1) + " / " + nTest);
 
             switch (choice) {
                 case 1:
@@ -659,9 +689,21 @@ public class Brouillimg {
                     return;
             }
 
+            s = getStep(key);
+            r = getOffest(key);
+            foundS = getStep(foundKey);
+            foundR = getOffest(foundKey);
+
+            System.out.println("S réel : " + s);
+            System.out.println("R réel : " + r);
+
             if (foundKey == key) {
-                passedTest++;
+                testPassed++;
                 System.out.println("Test passé (clé : " + key + ", clé trouvée : " + foundKey + ")");
+                System.out.println();
+            } else if (s == foundS) {
+                testPartialPassed++;
+                System.out.println("Test partiellement passé (s : " + s + ", s trouvé : " + foundS + ", r : " + r + ", r trouvé : " + foundR + ")");
                 System.out.println();
             } else {
                 System.out.println("Test raté (clé : " + key + ", clé trouvée : " + foundKey + ")");
@@ -669,15 +711,16 @@ public class Brouillimg {
             }
         }
 
-        int failedTest = nTest - passedTest;
+        int testFailed = nTest - testPassed - testPartialPassed;
 
         System.out.println("======================");
         System.out.printf("Temps moyen : %.2f ms\n", Profiler.getTimeAvg());
-        System.out.println("Tests passés : " + passedTest);
-        System.out.println("Tests ratés : " + failedTest);
+        System.out.println("Tests passés : " + testPassed);
+        System.out.println("Tests partiellement passés : " + testPartialPassed);
+        System.out.println("Tests ratés : " + testFailed);
 
-        if (passedTest != 0) {
-            System.out.printf("%.2f%% de succès\n", ((double) passedTest / nTest) * 100);
+        if (testPassed != 0) {
+            System.out.printf("%.2f%% de succès\n", ((double) testPassed / nTest) * 100);
         } else {
             System.out.println("0% de succès\n");
         }
