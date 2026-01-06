@@ -519,7 +519,7 @@ public class Brouillimg {
 
     public static int bestLineVariance(int[][] inputImageGL) {
         int height = inputImageGL.length;
-        final int STEP = 1;
+        final int STEP = 10;
         int bestIndex = 0;
         int score;
         int bestScore = 0;
@@ -538,7 +538,7 @@ public class Brouillimg {
 
     public static int lineVarianceScore(int[][] inputImageGL, int index) {
         int width = inputImageGL[0].length;
-        final int STEP = width / 512 + 1;
+        final int STEP = width / 256 + 1;
         int score = 0;
 
         for (int i = 0; i < width - 1; i += STEP) {
@@ -625,7 +625,6 @@ public class Brouillimg {
     }
 
     public static void profileBreakKey(BufferedImage inputImage, int choice) {
-        final int N_TEST = 50;
         final int MAX_KEY = 128 * 256 - 1;
         int height = inputImage.getHeight();
         int passedTest = 0;
@@ -635,13 +634,16 @@ public class Brouillimg {
         int[][] scrambledImageGL;
         BufferedImage scrambledImage;
 
-        for (int i = 0; i < N_TEST; i++) {
+        System.out.println("Combien de test?");
+        int nTest = input.nextInt();
+
+        for (int i = 0; i < nTest; i++) {
             key = genRandomKey(MAX_KEY);
             perm = generatePermutation(height, key);
             scrambledImage = scrambleLines(inputImage, perm);
             scrambledImageGL = rgb2gl(scrambledImage);
 
-            System.out.println("Test " + i + " / " + N_TEST);
+            System.out.println("Test " + i + " / " + nTest);
 
             switch (choice) {
                 case 1:
@@ -667,7 +669,7 @@ public class Brouillimg {
             }
         }
 
-        int failedTest = N_TEST - passedTest;
+        int failedTest = nTest - passedTest;
 
         System.out.println("======================");
         System.out.printf("Temps moyen : %.2f ms\n", Profiler.getTimeAvg());
@@ -675,7 +677,7 @@ public class Brouillimg {
         System.out.println("Tests ratés : " + failedTest);
 
         if (passedTest != 0) {
-            System.out.printf("%.2f%% de succès\n", ((double) passedTest / N_TEST) * 100);
+            System.out.printf("%.2f%% de succès\n", ((double) passedTest / nTest) * 100);
         } else {
             System.out.println("0% de succès\n");
         }
