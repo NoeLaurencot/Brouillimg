@@ -60,7 +60,11 @@ public class Profiler {
 
         int result = method.apply(inputImageGL);
 
-        globalTime += timestamp() - time;
+        time = timestamp() - time;
+
+        System.out.printf("Time elapsed to find key : %.2f ms\n", time / 1e6);
+
+        globalTime += time;
         counter++;
 
         return result;
