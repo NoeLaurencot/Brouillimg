@@ -9,7 +9,7 @@ Brouillimg est un programme Java permettant de brouiller et de débrouiller des 
 
 ### Fonctionnement
 
-La clé est un entier de **15 bits** (0 – 32 767), décomposé en deux parties :
+La clé est un entier de **15 bits** (0 - 32 767), décomposé en deux parties :
 - **bits 14–7** → offset `r` (8 bits)
 - **bits 6–0**  → step `s` (7 bits)
 
