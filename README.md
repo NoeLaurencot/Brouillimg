@@ -32,24 +32,21 @@ javac -d out src/Profiler.java src/Brouillimg.java
 java -cp out Brouillimg <processus> <image_entrée> <clé> [image_sortie]
 ```
 
-| Paramètre       | Description                                                        |
-|-----------------|--------------------------------------------------------------------|
-| `<processus>`   | Action à effectuer (voir tableau ci-dessous)                       |
-| `<image_entrée>`| Chemin vers l'image PNG d'entrée                                   |
-| `<clé>`         | Clé codée sur 15 bits (0 - 32 767)                                 |
-| `[image_sortie]`| *(Optionnel)* Chemin de l'image de sortie (par défaut "out.png")   |
+- `<processus>` → Action à effectuer (voir tableau ci-dessous)
+- `<image_entrée>` → Chemin vers l'image PNG d'entrée
+- `<clé>` → Clé codée sur 15 bits (0 - 32 767)
+- `[image_sortie]` → *(Optionnel)* Chemin de l'image de sortie (par défaut "out.png")
 
 ### Processus
 
-| Processus    | Description                                                                  |
-|--------------|------------------------------------------------------------------------------|
-| `scramble`   | Brouille l'image en permutant ses lignes selon la clé fournie                |
-| `unscramble` | Débrouille l'image en inversant la permutation grâce à la clé fournie        |
-| `euclidean`  | Casse la clé par la distance euclidienne entre lignes                        |
-| `pearson`    | Casse la clé par la corrélation de Pearson                                   |
-| `variance`   | Casse la clé en maximisant la variance entre lignes (En réalité Manhattan)   |
-| `neighbor`   | Casse la clé par similarité entre lignes voisines                            |
-| `profile`    | Mode interactif pour comparer les performances des méthodes de cassage       |
+
+- `scramble` → Brouille l'image en permutant ses lignes selon la clé fournie
+- `unscramble` → Débrouille l'image en inversant la permutation grâce à la clé fournie
+- `euclidean` → Casse la clé par la distance euclidienne entre lignes
+- `pearson` → Casse la clé par la corrélation de Pearson
+- `variance` → Casse la clé en maximisant la variance entre lignes (En réalité Manhattan)
+- `neighbor` → Casse la clé par similarité entre lignes voisines
+- `profile` → Mode interactif pour comparer les performances des méthodes de cassage
 
 ## Exemples
 
